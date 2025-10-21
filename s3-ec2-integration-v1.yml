@@ -46,6 +46,8 @@ Resources:
 
       KeyName: !Ref keyPairName
 
+      IamInstanceProfile: !Ref ec2InstanceProfile
+      
       SecurityGroupIds:
         - !GetAtt ec2SecurityGroup.GroupId
 
@@ -77,6 +79,7 @@ Resources:
 
   s3Ec2Role:
     Type: AWS::IAM::Role
+    #Bale gagawin niya yung s3Ec2Role pag an create na yung s3bucket para di mag error
     DependsOn: myS3Bucket  # Only create the role after the s3 bucket has been created
     Properties:
       AssumeRolePolicyDocument:
@@ -104,4 +107,10 @@ Resources:
                 Resource:
                   - !GetAtt myS3Bucket.Arn
                   - !Join ["", [!GetAtt myS3Bucket.Arn, "/*"]]
- 
+
+
+  ec2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: # Required
+        - !Ref s3Ec2Role
