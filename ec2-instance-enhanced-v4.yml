@@ -72,11 +72,7 @@ Resources:
 
       SecurityGroupIds:
         - !GetAtt ec2SecurityGroup.GroupId
-        - !If [
-            isLinuxWebServer,
-            !GetAtt ec2WebSecurityGroup.GroupId,
-            AWS::NoValue,
-          ]
+        - !If [isLinuxWebServer,!GetAtt ec2WebSecurityGroup.GroupId,AWS::NoValue]
 
   ec2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
