@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+#remarks  or how you want to use the template
+Description: "Sample S3 Bucket Using CloudFormation"
+
+Parameters:
+  s3BucketName:
+    Type: String
+    Description: "Name of the S3 Bucket to be created"
+    Default: "mdr-trn-my-cfn-bucket"
+
+Resources:
+  # this is the name in Cloudformation Standpoint
+  myS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref s3BucketName
