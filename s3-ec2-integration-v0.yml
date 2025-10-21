@@ -1,0 +1,107 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "S3 To Ec2 Integration Sample"
+
+Parameters: 
+
+  s3BucketName:
+    Type: String
+    Description: "Name of the S3 Bucket to be created"
+    Default: "mdr-trn-s3-ec2-integration"
+
+
+  instanceType:
+    Description: "Ec2 Instance Type"
+    Type: String
+    Default: "t3.micro"
+    AllowedValues:
+      - "t3.micro"
+      - "t3.small"
+
+
+  keyPairName:
+    Description: "EC2 KeyPair Name"
+    Type: String
+    Default: "aws-trn-2025"
+
+
+Resources: 
+
+  myS3Bucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: !Ref s3BucketName
+
+  ec2Instance:
+    Type: AWS::EC2::Instance
+
+    Properties:
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            VolumeSize: 8
+
+      ImageId: "ami-0341d95f75f311023"
+
+      InstanceType: !Ref instanceType
+
+      KeyName: !Ref keyPairName
+
+      SecurityGroupIds:
+        - !GetAtt ec2SecurityGroup.GroupId
+
+  ec2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "CFN Linux Server Security Group" # Required
+      GroupName: "cfnLinuxSecGroup"
+      SecurityGroupEgress:
+        - CidrIp: "0.0.0.0/0"
+          Description: "Allow all Outbound"
+          FromPort: -1
+          IpProtocol: -1
+          ToPort: -1
+      SecurityGroupIngress:
+        # - CidrIp: "0.0.0.0/0"
+        #   Description: "Allow HTTP"
+        #   FromPort: 80
+        #   IpProtocol: "tcp"
+        #   ToPort: 80
+
+        - CidrIp: "0.0.0.0/0"
+          Description: "Allow SSH"
+          FromPort: 22
+          IpProtocol: "tcp"
+          ToPort: 22
+      VpcId: "vpc-0955e0d762440f964"
+
+
+  s3Ec2Role:
+    Type: AWS::IAM::Role
+    DependsOn: myS3Bucket  # Only create the role after the s3 bucket has been created
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Principal: 
+              Service: 
+                - "ec2.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+
+      Description: "S3 to EC2 Integration using Cloud Formation"
+      RoleName: "s3Ec2RoleCfn"
+      Policies:
+        - PolicyName: "s3Ec2Policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "s3:GetObject"
+                  - "s3:ListBucket"
+                  - "s3:PutObject"
+                Resource:
+                  - !GetAtt myS3Bucket.Arn
+                  - !Join ["", [!GetAtt myS3Bucket.Arn, "/*"]]
+ 
