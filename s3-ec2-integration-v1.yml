@@ -40,6 +40,7 @@ Resources:
           Ebs:
             VolumeSize: 8
 
+      #AMI ID in the Ec2 instance, this is only default Amazon Machine Image of Amazon Linux, not the custom created
       ImageId: "ami-0341d95f75f311023"
 
       InstanceType: !Ref instanceType
@@ -62,6 +63,7 @@ Resources:
           FromPort: -1
           IpProtocol: -1
           ToPort: -1
+      #OutboundRule
       SecurityGroupIngress:
         # - CidrIp: "0.0.0.0/0"
         #   Description: "Allow HTTP"
@@ -69,17 +71,21 @@ Resources:
         #   IpProtocol: "tcp"
         #   ToPort: 80
 
+        #SSH only, configure in the terminal to allow this and run
+        #Inbound Rule
         - CidrIp: "0.0.0.0/0"
           Description: "Allow SSH"
           FromPort: 22
           IpProtocol: "tcp"
           ToPort: 22
+      #this comes from VPC. search vpc in console then you will see the vpc then copy the VPC ID
+      #or in the secgroup then select any of it then you will see the vpc id
       VpcId: "vpc-0955e0d762440f964"
 
 
   s3Ec2Role:
     Type: AWS::IAM::Role
-    #Bale gagawin niya yung s3Ec2Role pag an create na yung s3bucket para di mag error
+    #Bale gagawin niya yung s3Ec2Role pag na create na yung s3bucket para di mag error
     DependsOn: myS3Bucket  # Only create the role after the s3 bucket has been created
     Properties:
       AssumeRolePolicyDocument:

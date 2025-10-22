@@ -1,0 +1,24 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "Sample SQS Queue using CFN"
+
+Parameters: 
+  queueName:
+    Description: "Queue Name"
+    Type: String
+    Default: s3EventsQueueCfn
+
+Resources: 
+  deadletterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Join ["-", [!Ref queueName, "DLQ"]]
+      VisibilityTimeout: 10
+
+  primaryQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Ref queueName
+      RedrivePolicy: 
+        deadLetterTargetArn: !GetAtt deadletterQueue.Arn   # ✅ Correct key
+        maxReceiveCount: 3
+      VisibilityTimeout: 10
