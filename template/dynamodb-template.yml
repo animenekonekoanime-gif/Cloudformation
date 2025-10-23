@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "DynamoDB Table for Card Account"
+
+Resources:
+  CardAccountTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: "card_account_cfn"
+      AttributeDefinitions:
+        - AttributeName: "card_no"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "card_no"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      TableClass: "STANDARD"
+
+Outputs:
+  TableName:
+    Description: "DynamoDB Table Name"
+    Value: !Ref CardAccountTable
+
+  TableArn:
+    Description: "DynamoDB Table ARN"
+    Value: !GetAtt CardAccountTable.Arn

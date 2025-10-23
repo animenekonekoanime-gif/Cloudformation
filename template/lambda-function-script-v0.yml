@@ -1,0 +1,174 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "lambda API Gateway Sample"
+
+
+Parameters:
+  restApiName:
+    Description: "The Name of our Rest API"
+    Type: String
+    Default: "CardApi-Practice-Cfn"
+
+  lambdas3Bucket:
+    Description: "S3 Bucket of the lambda Function"
+    Type: String
+    Default: "mdr-trn-cfn-scripts"
+
+  #galing eto sa s3-lambda-sqs-v3.yml sa producer tas pinalitan lang pangalan then cinopy pati yung sa lambdaFunction tsaka lambdaFunctionRole then pinalitan pangalan
+
+
+  # Card List Lambda params
+  listFunctionName:
+    Description: "Card List Lambda Function Name"
+    Type: String
+    Default: fnCardListApiCfn
+
+  listLambdaZipFile:
+    Description: "Lambda List Zip File in the bucket's lambda/folder"
+    Type: String
+    Default: "fn_card_list_cfn-v0.zip"
+
+  listLambdaHandler:
+    Description: "Lambda List handler function name"
+    Type: String
+    Default: "fn_card_list_cfn.lambda_handler"
+
+
+# Card Status Update Lambda params
+  statusFunctionName:
+    Description: "Card Status Update Lambda Function Name"
+    Type: String
+    Default: fnCardStatusApiCfn
+
+  statusLambdaZipFile:
+    Description: "Lambda Status Update Zip File in the bucket's lambda/folder"
+    Type: String
+    Default: "fn_card_status_update_cfn-v0.zip"
+
+  statusLambdaHandler:
+    Description: "Lambda Status Update handler function name"
+    Type: String
+    Default: "fn_card_status_update_cfn.lambda_handler"
+
+# Card Register Lambda params
+  registerFunctionName:
+    Description: "Card Register Lambda Function Name"
+    Type: String
+    Default: fnCardRegisterApiCfn
+
+  registerLambdaZipFile:
+    Description: "Lambda Register Zip File in the bucket's lambda/folder"
+    Type: String
+    Default: "fn_card_reg_cfn-v0.zip"
+
+  registerLambdaHandler:
+    Description: "Lambda Register handler function name"
+    Type: String
+    Default: "fn_card_reg_cfn.lambda_handler"
+
+
+#Resources
+Resources: 
+
+  dynamoStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: "https://mdr-trn-cfn-scripts.s3.us-east-1.amazonaws.com/template/dynamodb-template.yml"
+
+  restApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Description: "Card Management REST API"
+      Name: !Ref restApiName
+
+
+
+  # List Lambda functions
+
+
+  #listLambdaFunction and Roles
+  listLambdaFunction:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+
+      TemplateURL: "https://mdr-trn-cfn-scripts.s3.us-east-1.amazonaws.com/template/lambda-function-template.yml"
+
+      Parameters:
+        functionName: !Ref listFunctionName
+        s3Bucket: !Ref lambdas3Bucket
+        lambdaZipFile:  !Ref listLambdaZipFile
+        functionDescription: "Card API List Function using nested stacks"
+        functionHandler: !Ref listLambdaHandler
+
+
+  # Card Status Lambda Functions
+  statusLambdaFunction:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+
+      TemplateURL: "https://mdr-trn-cfn-scripts.s3.us-east-1.amazonaws.com/template/lambda-function-template.yml"
+
+      Parameters:
+        functionName: !Ref statusFunctionName
+        s3Bucket: !Ref lambdas3Bucket
+        lambdaZipFile:  !Ref statusLambdaZipFile
+        functionDescription: "Card API List Function using nested stacks"
+        functionHandler: !Ref statusLambdaHandler
+
+
+  # Register Card lambda Function
+  registerLambdaFunction:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+
+      TemplateURL: "https://mdr-trn-cfn-scripts.s3.us-east-1.amazonaws.com/template/lambda-function-template.yml"
+
+      Parameters:
+        functionName: !Ref registerFunctionName
+        s3Bucket: !Ref lambdas3Bucket
+        lambdaZipFile:  !Ref registerLambdaZipFile
+        functionDescription: "Card API List Function using nested stacks"
+        functionHandler: !Ref registerLambdaHandler
+
+  cardDatabaseTable:
+    Description: "Name of the DynamoDB table"
+    Value: !GetAtt dynamoStack.Outputs.TableName
+
+  # IAM POLICY
+  cardDatabaseTablePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "card_account_read_write_sample_cfn" # Required
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "dynamodb:PutItem"
+              - "dynamodb:UpdateItem"
+              - "dynamodb:Scan"
+              - "dynamodb:GetItem"
+            Resource: !GetAtt dynamoStack.Outputs.TableArn
+
+      Roles:
+        - !GetAtt listLambdaFunction.Outputs.IAMRole
+        - !GetAtt statusLambdaFunction.Outputs.IAMRole
+        - !GetAtt registerLambdaFunction.Outputs.IAMRole
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

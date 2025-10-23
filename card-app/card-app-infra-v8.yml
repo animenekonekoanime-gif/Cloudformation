@@ -1,0 +1,396 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "lambda API Gateway Sample"
+
+
+Parameters:
+
+  restApiName:
+    Description: "The Name of our Rest api"
+    Type: String
+    Default: "CardApiCfn"
+
+  lambdas3Bucket:
+    Description: "S3 Bucket of the lambda Function"
+    Type: String
+    Default: "mdr-trn-cfn-scripts"
+
+  #galing eto sa s3-lambda-sqs-v3.yml sa producer tas pinalitan lang pangalan then cinopy pati yung sa lambdaFunction tsaka lambdaFunctionRole then pinalitan pangalan
+
+
+  # Card List Lambda params
+  listFunctionName:
+    Description: "Card List Lambda Function Name"
+    Type: String
+    Default: fnCardListApiCfn
+
+  listLambdaZipFile:
+    Description: "Lambda List Zip File in the bucket's lambda/folder"
+    Type: String
+    Default: "fn_card_list_cfn-v0.zip"
+
+  listLambdaHandler:
+    Description: "Lambda List handler function name"
+    Type: String
+    Default: "fn_card_list_cfn.lambda_handler"
+
+
+# Card Status Update Lambda params
+  statusFunctionName:
+    Description: "Card Status Update Lambda Function Name"
+    Type: String
+    Default: fnCardStatusApiCfn
+
+  statusLambdaZipFile:
+    Description: "Lambda Status Update Zip File in the bucket's lambda/folder"
+    Type: String
+    Default: "fn_card_status_update_cfn-v0.zip"
+
+  statusLambdaHandler:
+    Description: "Lambda Status Update handler function name"
+    Type: String
+    Default: "fn_card_status_update_cfn.lambda_handler"
+
+# Card Register Lambda params
+  registerFunctionName:
+    Description: "Card Register Lambda Function Name"
+    Type: String
+    Default: fnCardRegisterApiCfn
+
+  registerLambdaZipFile:
+    Description: "Lambda Register Zip File in the bucket's lambda/folder"
+    Type: String
+    Default: "fn_card_reg_cfn-v0.zip"
+
+  registerLambdaHandler:
+    Description: "Lambda Register handler function name"
+    Type: String
+    Default: "fn_card_reg_cfn.lambda_handler"
+
+
+#Resources
+Resources: 
+
+  #restapi Resources
+  restApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+
+      Description: "Sample Rest API using CFN"
+      
+      Name: !Ref restApiName
+
+
+  listApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt restApi.RootResourceId
+      PathPart: list
+      RestApiId: !Ref restApi
+
+  registerApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt restApi.RootResourceId
+      PathPart: register
+      RestApiId: !Ref restApi
+
+
+  statusApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt restApi.RootResourceId
+      PathPart: "update-status"
+      RestApiId: !Ref restApi
+
+
+  # List Lambda functions
+  listLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Ref lambdas3Bucket
+        S3Key: !Join ["/",["lambda",!Ref listLambdaZipFile]]
+      Description: "Card List API using CloudFormation"
+      FunctionName: !Ref listFunctionName
+      Handler: !Ref listLambdaHandler
+      Role: !GetAtt listLambdaFunctionRole.Arn
+      Runtime: "python3.12"
+      Timeout: 60
+
+  # List lambda IAM Execution Role
+  listLambdaFunctionRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement: 
+            - Effect: "Allow"
+              Principal: 
+                Service: 
+                  - "lambda.amazonaws.com"
+              Action: 
+                - "sts:AssumeRole"
+
+        Description: !Join [" ",["IAM Role for",!Ref listFunctionName, "lambda function"]]
+        RoleName: !Join ["-",[!Ref listFunctionName,"lambda","role"]]
+        Policies:
+          - PolicyName: !Join ["-",[!Ref listFunctionName,"execution","policy"]]
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - "logs:CreateLogGroup"
+                  Resource:
+                    - "arn:aws:logs:*:*:*"
+
+                - Effect: Allow
+                  Action:
+                    - "logs:CreateLogStream"
+                    - "logs:PutLogEvents"
+                  Resource:
+                    - !Join ["",["arn:aws:logs:*:*:log-group:/aws/lambda/",!Ref listFunctionName ,":*"]]
+
+
+  # Card Status Lambda Functions
+  statusLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Ref lambdas3Bucket
+        S3Key: !Join ["/",["lambda",!Ref statusLambdaZipFile]]
+      Description: "Card status API using CloudFormation"
+      FunctionName: !Ref statusFunctionName
+      Handler: !Ref statusLambdaHandler
+      Role: !GetAtt statusLambdaFunctionRole.Arn
+      Runtime: "python3.12"
+      Timeout: 60
+
+  # Card Status lambda IAM Execution Role
+  statusLambdaFunctionRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement: 
+            - Effect: "Allow"
+              Principal: 
+                Service: 
+                  - "lambda.amazonaws.com"
+              Action: 
+                - "sts:AssumeRole"
+
+        Description: !Join [" ",["IAM Role for",!Ref statusFunctionName, "lambda function"]]
+        RoleName: !Join ["-",[!Ref statusFunctionName,"lambda","role"]]
+        Policies:
+          - PolicyName: !Join ["-",[!Ref statusFunctionName,"execution","policy"]]
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - "logs:CreateLogGroup"
+                  Resource:
+                    - "arn:aws:logs:*:*:*"
+
+                - Effect: Allow
+                  Action:
+                    - "logs:CreateLogStream"
+                    - "logs:PutLogEvents"
+                  Resource:
+                    - !Join ["",["arn:aws:logs:*:*:log-group:/aws/lambda/",!Ref statusFunctionName ,":*"]]
+
+
+  # Register Card lambda Function
+  registerLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Ref lambdas3Bucket
+        S3Key: !Join ["/",["lambda",!Ref registerLambdaZipFile]]
+      Description: "Card register API using CloudFormation"
+      FunctionName: !Ref registerFunctionName
+      Handler: !Ref registerLambdaHandler
+      Role: !GetAtt registerLambdaFunctionRole.Arn
+      Runtime: "python3.12"
+      Timeout: 60
+
+  # Register Card lambda IAM Execution Role
+  registerLambdaFunctionRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement: 
+            - Effect: "Allow"
+              Principal: 
+                Service: 
+                  - "lambda.amazonaws.com"
+              Action: 
+                - "sts:AssumeRole"
+
+        Description: !Join [" ",["IAM Role for",!Ref registerFunctionName, "lambda function"]]
+        RoleName: !Join ["-",[!Ref registerFunctionName,"lambda","role"]]
+        Policies:
+          - PolicyName: !Join ["-",[!Ref registerFunctionName,"execution","policy"]]
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - "logs:CreateLogGroup"
+                  Resource:
+                    - "arn:aws:logs:*:*:*"
+
+                - Effect: Allow
+                  Action:
+                    - "logs:CreateLogStream"
+                    - "logs:PutLogEvents"
+                  Resource:
+                    - !Join ["",["arn:aws:logs:*:*:log-group:/aws/lambda/",!Ref registerFunctionName ,":*"]]
+
+
+  # This is a  List API lambda method integration
+  listRestMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ApiKeyRequired: false
+
+      AuthorizationType: "NONE"
+      HttpMethod: "GET"
+      Integration:
+        Type: "AWS_PROXY"
+        IntegrationHttpMethod: "POST"
+        Uri: !Join ["",["arn:aws:apigateway:",!Ref "AWS::Region",":lambda:path/2015-03-31/functions/", !GetAtt listLambdaFunction.Arn, "/invocations"]]
+      ResourceId: !Ref listApiResource
+      RestApiId: !Ref restApi
+
+
+  #Card Status API lambda method integration
+  statusRestMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ApiKeyRequired: false
+
+      AuthorizationType: "NONE"
+      HttpMethod: "POST"
+      Integration:
+        Type: "AWS_PROXY"
+        IntegrationHttpMethod: "POST"
+        Uri: !Join ["",["arn:aws:apigateway:",!Ref "AWS::Region",":lambda:path/2015-03-31/functions/", !GetAtt statusLambdaFunction.Arn, "/invocations"]]
+      ResourceId: !Ref statusApiResource
+      RestApiId: !Ref restApi
+
+
+  #Card Register API lambda method integration
+  registerRestMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ApiKeyRequired: false
+
+      AuthorizationType: "NONE"
+      HttpMethod: "POST"
+      Integration:
+        Type: "AWS_PROXY"
+        IntegrationHttpMethod: "POST"
+        Uri: !Join ["",["arn:aws:apigateway:",!Ref "AWS::Region",":lambda:path/2015-03-31/functions/", !GetAtt registerLambdaFunction.Arn, "/invocations"]]
+      ResourceId: !Ref registerApiResource
+      RestApiId: !Ref restApi
+
+  #Rest Api Stage
+  restApiStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      
+      DeploymentId: !Ref restApiStageDeployment
+      Description: "Dev deployment stage"
+      
+      MethodSettings: 
+
+        - HttpMethod: "*"
+          ResourcePath: "/*"
+
+      RestApiId: !Ref restApi
+      StageName: "dev"
+
+  #Rest Api Deployment
+  restApiStageDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref restApi
+      #StageName: "dev"   
+
+
+
+  # Lambda Permission for CARD List API
+  listApiLambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: "lambda:InvokeFunction" 
+      FunctionName: !GetAtt listLambdaFunction.Arn
+      #Trigger
+      Principal: "apigateway.amazonaws.com"
+      SourceArn: !Join ["",["arn:aws:execute-api:",!Ref "AWS::Region",":",!Ref "AWS::AccountId",":",!Ref restApi,"/*"]]
+
+
+  # Lambda Permission for CARD Status update API
+  statusApiLambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: "lambda:InvokeFunction" 
+      FunctionName: !GetAtt statusLambdaFunction.Arn
+      #Trigger
+      Principal: "apigateway.amazonaws.com"
+      SourceArn: !Join ["",["arn:aws:execute-api:",!Ref "AWS::Region",":",!Ref "AWS::AccountId",":",!Ref restApi,"/*"]]
+
+  # Lambda Permission for CARD Register API
+  registerApiLambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: "lambda:InvokeFunction" 
+      FunctionName: !GetAtt registerLambdaFunction.Arn
+      #Trigger
+      Principal: "apigateway.amazonaws.com"
+      SourceArn: !Join ["",["arn:aws:execute-api:",!Ref "AWS::Region",":",!Ref "AWS::AccountId",":",!Ref restApi,"/*"]]
+
+
+  # DynamoDB
+  cardDatabaseTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+
+      AttributeDefinitions: 
+        - AttributeName: "card_no"
+          AttributeType: "S"
+
+      KeySchema: # Required
+        - AttributeName: "card_no"
+          KeyType: "HASH"
+
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+      TableClass: "STANDARD"
+      TableName: "card_account_cfn"
+
+  # IAM POLICY
+  cardDatabaseTablePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "card_account_read_write_cfn" # Required
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "dynamodb:PutItem"
+              - "dynamodb:UpdateItem"
+              - "dynamodb:Scan"
+              - "dynamodb:GetItem"
+            Resource: !GetAtt cardDatabaseTable.Arn
+
+      Roles:
+        - !Ref listLambdaFunctionRole
+        - !Ref registerLambdaFunctionRole
+        - !Ref statusLambdaFunctionRole

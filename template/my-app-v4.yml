@@ -1,0 +1,52 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "My Lambda Application"
+
+Resources: 
+
+  lambdaApp1:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+
+      TemplateURL: "https://mdr-trn-cfn-scripts.s3.us-east-1.amazonaws.com/template/lambda-function.yml"
+
+      Parameters:
+        functionName: fnTestTemplateCfn
+        s3Bucket: "mdr-trn-cfn-scripts"
+        lambdaZipFile:  "fn_card_list_cfn-v3.zip"
+        functionDescription: "Some Test Lambda Function using nested stacks"
+        functionHandler:  "fn_card_list_cfn.lambda_handler"
+
+         
+  lambdaApp2:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+
+      TemplateURL: "https://mdr-trn-cfn-scripts.s3.us-east-1.amazonaws.com/template/lambda-function.yml"
+
+      Parameters:
+        functionName: fnTestStatusCfn
+        s3Bucket: "mdr-trn-cfn-scripts"
+        lambdaZipFile:  "fn_card_status_update_cfn-v0.zip"
+        functionDescription: "Test Second Lambda Function using nested stacks"
+        functionHandler:  "fn_card_status_update_cfn.lambda_handler"
+      
+  # IAM POLICY
+  cardDatabaseTablePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "test_policy_nested_cfn" # Required
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "dynamodb:PutItem"
+              - "dynamodb:UpdateItem"
+              - "dynamodb:Scan"
+              - "dynamodb:GetItem"
+            Resource: arn:aws:dynamodb:us-east-1:884038419694:table/card_account
+
+      Roles:
+        - !GetAtt lambdaApp1.Outputs.IAMRole
+        - !GetAtt lambdaApp2.Outputs.IAMRole
+

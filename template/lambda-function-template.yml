@@ -1,0 +1,88 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "Lambda Function with an IAM Basic Execution Role Template"
+
+
+Parameters:
+  functionName:
+    Description: "Lambda Function Name"
+    Type: String
+    Default: fnHelloWorldCfn
+
+  s3Bucket:
+    Description: "S3 Bucket of the lambda Function"
+    Type: String
+    Default: "mdr-trn-cfn-scripts"
+
+  lambdaZipFile:
+    Description: "Lambda Zip File in the bucket's lambda/folder"
+    Type: String
+    Default: "fnHello-v0.py.zip"
+
+  #Template
+  functionDescription:
+    Description: "Lambda Function Description"
+    Type: String
+
+  functionHandler:
+    Description: "lambda Function Handler"
+    Type: String
+
+
+Resources: 
+
+
+  lambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Ref s3Bucket
+        S3Key: !Join ["/",["lambda",!Ref lambdaZipFile]]
+      Description: !Ref functionDescription
+      FunctionName: !Ref functionName
+      Handler:  !Ref functionHandler
+      Role: !GetAtt lambdaFunctionRole.Arn
+      Runtime: "python3.12"
+      Timeout: 60
+
+
+  lambdaFunctionRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement: 
+            - Effect: "Allow"
+              Principal: 
+                Service: 
+                  - "lambda.amazonaws.com"
+              Action: 
+                - "sts:AssumeRole"
+
+        Description: !Join [" ",["IAM Role for",!Ref functionName, "lambda function"]]
+        RoleName: !Join ["-",[!Ref functionName,"lambda","role"]]
+        Policies:
+          - PolicyName: !Join ["-",[!Ref functionName,"execution","policy"]]
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - "logs:CreateLogGroup"
+                  Resource:
+                    - "arn:aws:logs:*:*:*"
+
+                - Effect: Allow
+                  Action:
+                    - "logs:CreateLogStream"
+                    - "logs:PutLogEvents"
+                  Resource:
+                    - !Join ["",["arn:aws:logs:*:*:log-group:/aws/lambda/",!Ref functionName ,":*"]]
+
+
+Outputs:
+  IAMRole:
+    Description: "The Lambda Function Role"
+    Value: !Ref lambdaFunctionRole
+  FunctionArn:
+    Description: "The Lambda Function Arn"
+    Value: !GetAtt lambdaFunction.Arn
